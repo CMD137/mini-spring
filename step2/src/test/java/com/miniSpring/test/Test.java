@@ -18,5 +18,8 @@ public class Test {
         // 4.第二次获取 bean from Singleton，从实例map表里取得同一个对象。
         UserService userService_singleton = (UserService) beanFactory.getBean("userService");
         userService_singleton.queryUserInfo();
+        // 5.观察二者的hashCode,验证是否是一个实例：
+        System.out.println("userService.hashCode:"+userService.hashCode());
+        System.out.println("userService_singleton.hashCode:"+userService_singleton.hashCode());
     }
 }

@@ -4,5 +4,4 @@ public interface BeanFactory {
 
     public void registerBeanDefinition(String name, BeanDefinition beanDefinition);
 
-
 }

@@ -7,10 +7,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class DefaultListableBeanFactory extends  AbstractAutowireCapableBeanFactory implements  BeanDefinitionRegistry{
-
     //bean注册表
     private Map<String, BeanDefinition> beanDefinitionMap =new ConcurrentHashMap<>();
-
 
     @Override
     protected BeanDefinition getBeanDefinition(String beanName) {
@@ -20,7 +18,6 @@ public class DefaultListableBeanFactory extends  AbstractAutowireCapableBeanFact
         }
         return beanDefinition;
     }
-
     @Override
     public void registerBeanDefinition(String beanName, BeanDefinition beanDefinition) {
         if (beanDefinitionMap.containsKey(beanName)){
