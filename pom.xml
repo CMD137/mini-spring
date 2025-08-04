@@ -11,6 +11,7 @@
     <packaging>pom</packaging>
     <modules>
         <module>step1</module>
+        <module>step2</module>
     </modules>
 
     <properties>
