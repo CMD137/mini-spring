@@ -3,17 +3,13 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.example</groupId>
+        <artifactId>mini-spring</artifactId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
 
-    <groupId>org.example</groupId>
-    <artifactId>mini-spring</artifactId>
-    <version>1.0-SNAPSHOT</version>
-    <!-- 父模块必须设置为 pom 类型 -->
-    <packaging>pom</packaging>
-    <modules>
-        <module>step1</module>
-        <module>step2</module>
-        <module>step3</module>
-    </modules>
+    <artifactId>step3</artifactId>
 
     <properties>
         <maven.compiler.source>11</maven.compiler.source>
@@ -22,18 +18,11 @@
     </properties>
 
     <dependencies>
-        <!-- JUnit 5 -->
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-api</artifactId>
-            <version>5.9.2</version>
-            <scope>test</scope>
-        </dependency>
         <dependency>
             <groupId>cglib</groupId>
             <artifactId>cglib</artifactId>
             <version>3.3.0</version>
-            <scope>compile</scope>
         </dependency>
     </dependencies>
+
 </project>
