@@ -13,6 +13,7 @@
         <module>step1</module>
         <module>step2</module>
         <module>step3</module>
+        <module>step4</module>
     </modules>
 
     <properties>
@@ -34,6 +35,16 @@
             <artifactId>cglib</artifactId>
             <version>3.3.0</version>
             <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>cn.hutool</groupId>
+            <artifactId>hutool-all</artifactId>
+            <version>5.8.20</version>
+        </dependency>
+        <dependency>
+            <groupId>cglib</groupId>
+            <artifactId>cglib</artifactId>
+            <version>3.3.0</version>
         </dependency>
     </dependencies>
 </project>
