@@ -88,6 +88,18 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader {
     }
 
     /**
+     * 批量从多个资源路径字符串中加载 Bean 定义
+     * @param locations 多个资源路径字符串数组
+     * @throws BeansException 加载异常
+     */
+    @Override
+    public void loadBeanDefinitions(String... locations) throws BeansException {
+        for (String location : locations) {
+            loadBeanDefinitions(location);
+        }
+    }
+
+    /**
      * 解析 XML 输入流，读取 Bean 定义信息并注册
      * @param inputStream XML 配置文件输入流
      * @throws ClassNotFoundException 找不到指定类异常

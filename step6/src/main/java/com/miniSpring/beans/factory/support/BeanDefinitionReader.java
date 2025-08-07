@@ -44,6 +44,13 @@ public interface BeanDefinitionReader {
      */
     void loadBeanDefinitions(String location) throws BeansException;
 
+    /**
+     * 从多个资源路径字符串（location）批量加载 Bean 定义
+     * @param locations 资源路径数组（可变参数），支持传入多个 Resource
+     * @throws BeansException 加载异常
+     */
+    void loadBeanDefinitions(String... locations) throws BeansException;
+
 }
 
 
