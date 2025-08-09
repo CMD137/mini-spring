@@ -18,6 +18,7 @@
         <module>step6</module>
         <module>step7</module>
         <module>step8</module>
+        <module>step9</module>
     </modules>
 
     <properties>
@@ -49,6 +50,13 @@
             <groupId>cglib</groupId>
             <artifactId>cglib</artifactId>
             <version>3.3.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.openjdk.jol</groupId>
+            <artifactId>jol-core</artifactId>
+            <version>0.16</version> <!-- 版本号可能会更新 -->
+            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>
