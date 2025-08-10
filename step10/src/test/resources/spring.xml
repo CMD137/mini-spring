@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans>
+
+    <bean class="com.miniSpring.test.event.ContextRefreshedEventListener"/>
+
+    <bean class="com.miniSpring.test.event.CustomEventListener_1"/>
+
+    <bean class="com.miniSpring.test.event.CustomEventListener_2"/>
+
+    <bean class="com.miniSpring.test.event.ContextClosedEventListener"/>
+
+</beans>
