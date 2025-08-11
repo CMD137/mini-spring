@@ -20,6 +20,7 @@
         <module>step8</module>
         <module>step9</module>
         <module>step10</module>
+        <module>step11</module>
     </modules>
 
     <properties>
@@ -36,17 +37,20 @@
             <version>5.9.2</version>
             <scope>test</scope>
         </dependency>
+
         <dependency>
             <groupId>cglib</groupId>
             <artifactId>cglib</artifactId>
             <version>3.3.0</version>
             <scope>compile</scope>
         </dependency>
+
         <dependency>
             <groupId>cn.hutool</groupId>
             <artifactId>hutool-all</artifactId>
             <version>5.8.20</version>
         </dependency>
+
         <dependency>
             <groupId>cglib</groupId>
             <artifactId>cglib</artifactId>
@@ -58,6 +62,18 @@
             <artifactId>jol-core</artifactId>
             <version>0.16</version> <!-- 版本号可能会更新 -->
             <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.aspectj</groupId>
+            <artifactId>aspectjweaver</artifactId>
+            <version>1.9.7</version>
+        </dependency>
+
+        <dependency>
+            <groupId>aopalliance</groupId>
+            <artifactId>aopalliance</artifactId>
+            <version>1.0</version>
         </dependency>
     </dependencies>
 </project>
