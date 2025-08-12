@@ -1,11 +1,17 @@
 package com.miniSpring.aop.framework;
 
 import com.miniSpring.aop.AdvisedSupport;
+import com.miniSpring.aop.Advisor;
+import com.miniSpring.aop.MethodBeforeAdvice;
+import com.miniSpring.aop.PointcutAdvisor;
+import com.miniSpring.aop.adapter.MethodBeforeAdviceInterceptor;
 import net.sf.cglib.proxy.Enhancer;
 import net.sf.cglib.proxy.MethodInterceptor;
 import net.sf.cglib.proxy.MethodProxy;
+import org.aopalliance.aop.Advice;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.List;
 
 public class Cglib2AopProxy implements AopProxy {
@@ -39,22 +45,48 @@ public class Cglib2AopProxy implements AopProxy {
 
         @Override
         public Object intercept(Object proxy, Method method, Object[] args, MethodProxy methodProxy) throws Throwable {
-            // 判断方法是否匹配切点
-            if (advised.getMethodMatcher() == null ||
-                    advised.getMethodMatcher().matches(method, advised.getTargetSource().getTarget().getClass())) {
+            // 1. 检查是否是Object类的方法（如toString、hashCode等），这些方法通常不需要增强
+            if (Object.class.equals(method.getDeclaringClass())) {
+                return method.invoke(advised.getTargetSource().getTarget(), args);
+            }
+
+
+            // 2. 获取匹配的Advisor
+            List<PointcutAdvisor> eligibleAdvisors = new ArrayList<>();
+            for (PointcutAdvisor advisor : advised.getAdvisors()) {
+                if (advisor.getPointcut().getMethodMatcher()
+                        .matches(method, advised.getTargetSource().getTarget().getClass())) {
+                    eligibleAdvisors.add(advisor);
+                }
+            }
+
+            // 3. 把Advisor转换成MethodInterceptor链
+            List<org.aopalliance.intercept.MethodInterceptor> interceptorChain = new ArrayList<>();
+            for (Advisor advisor : eligibleAdvisors) {
+                // 获取当前Advisor对应的Advice（增强逻辑）
+                Advice advice = advisor.getAdvice();
+
+                if (advice instanceof org.aopalliance.intercept.MethodInterceptor) {
+                    // 如果Advice本身就是MethodInterceptor，直接加入拦截器链
+                    interceptorChain.add((org.aopalliance.intercept.MethodInterceptor) advice);
+                } else if (advice instanceof MethodBeforeAdvice) {
+                    // 如果是前置通知接口，使用MethodBeforeAdviceInterceptor适配成MethodInterceptor
+                    interceptorChain.add(new MethodBeforeAdviceInterceptor((MethodBeforeAdvice) advice));
+                } else {
+                    // 目前不支持的Advice类型，抛出异常提示
+                    throw new IllegalArgumentException("Unsupported advice type: " + advice.getClass());
+                }
+            }
+
                 // 执行拦截器链，传入自定义的 CglibMethodInvocation
                 CglibMethodInvocation invocation = new CglibMethodInvocation(
                         advised.getTargetSource().getTarget(),
                         method,
                         args,
                         methodProxy,
-                        advised.getMethodInterceptorList()
+                        interceptorChain
                 );
                 return invocation.proceed();
-            } else {
-                // 不匹配则直接调用目标方法
-                return methodProxy.invoke(advised.getTargetSource().getTarget(), args);
-            }
         }
     }
 

@@ -11,7 +11,10 @@ import com.miniSpring.beans.factory.config.InstantiationAwareBeanPostProcessor;
 import org.aopalliance.aop.Advice;
 import org.aopalliance.intercept.MethodInterceptor;
 
+import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 
 /**
  * 自动代理创建器，自动扫描容器中所有的 AspectJExpressionPointcutAdvisor，
@@ -65,22 +68,15 @@ public class DefaultAdvisorAutoProxyCreator implements InstantiationAwareBeanPos
         }
 
         // 获取所有切面通知组合对象
-        Collection<AspectJExpressionPointcutAdvisor> advisors =
+        Collection<AspectJExpressionPointcutAdvisor> advisorCollection =
                 beanFactory.getBeansOfType(AspectJExpressionPointcutAdvisor.class).values();
 
+        List<AspectJExpressionPointcutAdvisor> advisors = new ArrayList<>(advisorCollection);
 
 
-        for (AspectJExpressionPointcutAdvisor advisor : advisors) {
-            // 判断切面切点是否匹配当前Bean类型
-            ClassFilter classFilter = advisor.getPointcut().getClassFilter();
-            if (!classFilter.matches(bean.getClass())) {
-                continue;
-            }
 
-            // 准备代理相关配置
-            AdvisedSupport advisedSupport = new AdvisedSupport();
 
-            //直接用反射创建新对象，跳过 Spring 容器管理
+        //直接用反射创建新对象，跳过 Spring 容器管理
             /*
             TargetSource targetSource = null;
             try {
@@ -91,26 +87,46 @@ public class DefaultAdvisorAutoProxyCreator implements InstantiationAwareBeanPos
 
             */
 
-//            // 通过beanFactory获取目标Bean实例（非重复创建）
-//            Object target = beanFactory.getBean(beanName);
-//            advisedSupport.setTargetSource(new TargetSource(target));
-            // 直接使用当前Bean实例作为目标对象（正确做法）
-            advisedSupport.setTargetSource(new TargetSource(bean));
+        // 准备代理相关配置
+        AdvisedSupport advisedSupport = new AdvisedSupport();
+        advisedSupport.setTargetSource(new TargetSource(bean));
+        advisedSupport.setProxyTargetClass(bean.getClass().getInterfaces().length == 0);
 
-            // 添加拦截器链，这里简单添加单个Advice的拦截器
-            advisedSupport.addMethodInterceptor((MethodInterceptor) advisor.getAdvice());
 
-            // 设置方法匹配器
-            advisedSupport.setMethodMatcher(advisor.getPointcut().getMethodMatcher());
+        //debug:
+        for (AspectJExpressionPointcutAdvisor advisor : advisors) {
+            System.out.println("Advice类：" + advisor.getAdvice().getClass().getName());
 
-            // 是否使用Cglib代理（这里默认JDK代理）
-            advisedSupport.setProxyTargetClass(false);
+            // 取切点的 MethodMatcher
+            MethodMatcher mm = advisor.getPointcut().getMethodMatcher();
 
-            // 通过代理工厂生成代理对象并返回
-            return new ProxyFactory(advisedSupport).getProxy();
+            // 假设目标类是 targetClass
+            Class<?> targetClass = advisedSupport.getTargetSource().getTarget().getClass();
+
+            // 遍历目标类所有方法，检查是否匹配切点
+            for (Method method : targetClass.getMethods()) {
+                if (mm.matches(method, targetClass)) {
+                    System.out.println("匹配的方法名: " + method.getName());
+                }
+            }
         }
 
-        // 无匹配切面，返回原Bean
+        // 遍历所有的切面通知器(Advisor)
+        for (AspectJExpressionPointcutAdvisor advisor : advisors) {
+            // 检查当前通知器的切入点是否匹配目标Bean的类
+            // getClassFilter()获取类过滤器，matches()判断目标类是否符合切入点表达式
+            if (advisor.getPointcut().getClassFilter().matches(bean.getClass())) {
+                // 如果匹配，则将该通知器添加到通知支持类中
+                advisedSupport.addAdvisor(advisor); // 存储匹配的通知器
+            }
+        }
+
+        // 检查是否有匹配的通知器
+        if (!advisedSupport.getAdvisors().isEmpty()) {
+            // 如果有匹配的通知器，使用代理工厂创建代理对象并返回
+            return new ProxyFactory(advisedSupport).getProxy();
+        }
+        // 如果没有匹配的通知器，直接返回原始Bean对象
         return bean;
     }
 

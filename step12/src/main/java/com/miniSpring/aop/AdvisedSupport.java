@@ -24,10 +24,8 @@ public class AdvisedSupport {
      */
     private TargetSource targetSource;
 
-    /**
-     * 方法拦截器链，可以包含多个拦截器
-     */
-    private List<MethodInterceptor> methodInterceptorList = new ArrayList<>();
+    // 改成存 Advisor 列表，而非 MethodInterceptor 列表
+    private List<PointcutAdvisor> advisors = new ArrayList<>();
 
     /**
      * 方法匹配器，判断某个方法是否需要被增强
@@ -60,12 +58,12 @@ public class AdvisedSupport {
         this.targetSource = targetSource;
     }
 
-    public List<MethodInterceptor> getMethodInterceptorList() {
-        return methodInterceptorList;
+    public List<PointcutAdvisor> getAdvisors() {
+        return advisors;
     }
 
-    public void setMethodInterceptorList(List<MethodInterceptor> methodInterceptorList) {
-        this.methodInterceptorList = methodInterceptorList;
+    public void setAdvisors(List<PointcutAdvisor> advisors) {
+        this.advisors = advisors;
     }
 
     public MethodMatcher getMethodMatcher() {
@@ -79,10 +77,10 @@ public class AdvisedSupport {
     // ========== 方便添加单个拦截器的辅助方法 ==========
 
     /**
-     * 方便向拦截器链添加一个拦截器
+     * 方便向拦截器链添加一个advisor
      */
-    public void addMethodInterceptor(MethodInterceptor interceptor) {
-        this.methodInterceptorList.add(interceptor);
+    public void addAdvisor(PointcutAdvisor advisor) {
+        this.advisors.add(advisor);
     }
 }
 
