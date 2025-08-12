@@ -1,6 +1,7 @@
 package com.miniSpring.aop.framework;
 
 import com.miniSpring.aop.AdvisedSupport;
+import com.miniSpring.beans.BeansException;
 import org.aopalliance.intercept.MethodInterceptor;
 
 import java.lang.reflect.InvocationHandler;
@@ -34,10 +35,33 @@ public class JdkDynamicAopProxy implements AopProxy, InvocationHandler {
     @Override
     public Object getProxy() {
         // 使用当前线程上下文类加载器，目标类接口列表，以及当前对象（作为 InvocationHandler）
+        // 1. 获取目标对象的Class（如UserService.class）
+        Class<?> targetClass = advised.getTargetSource().getTargetClass();
+
+        //debug:
+        //System.out.println("目标类：" + targetClass.getName());
+
+        // 2. 获取目标对象实现的所有接口（关键：必须是接口数组）
+        Class<?>[] interfaces = targetClass.getInterfaces();
+
+        // 3. 验证是否有接口（JDK代理必须基于接口）
+        if (interfaces.length == 0) {
+            throw new BeansException("目标类 " + targetClass.getName() + " 未实现任何接口，无法使用JDK动态代理");
+        }
+
+        //debug:
+//        for (Class<?> iface : interfaces) {
+//            //System.out.println("代理实现的接口：" + iface.getName());
+//            // 应输出：com.miniSpring.test.bean.IUserService
+//        }
+
+
+        // 4. 传入接口数组创建代理
         return Proxy.newProxyInstance(
                 Thread.currentThread().getContextClassLoader(),
-                advised.getTargetSource().getTargetClass(),
-                this);
+                interfaces, // 正确：传入接口数组（如[IUserService.class]）
+                this
+        );
     }
 
     /**

@@ -21,6 +21,10 @@ public class MethodBeforeAdviceInterceptor implements MethodInterceptor {
      */
     private MethodBeforeAdvice advice;
 
+    // 添加无参构造函数（关键）
+    public MethodBeforeAdviceInterceptor() {
+    }
+
     public MethodBeforeAdviceInterceptor(MethodBeforeAdvice advice) {
         this.advice = advice;
     }

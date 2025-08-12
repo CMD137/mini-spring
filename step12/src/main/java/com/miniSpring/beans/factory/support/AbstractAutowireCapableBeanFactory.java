@@ -18,23 +18,40 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 
     @Override
     protected Object createBean(String beanName, BeanDefinition beanDefinition, Object[] args) throws BeansException {
+
         Object bean = null;
+
         try {
             // 提前代理部分，用于处理缓存依赖问题，以后再处理，目前先直接返回null，正常走创建流程，在postProcessAfterInitialization里做代理。
             bean = resolveBeforeInstantiation(beanName, beanDefinition);
             if (null != bean) {
                 return bean;
             }
+        } catch (Exception e) {
+            throw new BeansException("Failed during resolveBeforeInstantiation for bean: " + beanName, e);
+        }
 
-            //创建实例
+        try {
+            // 创建实例
             bean = createBeanInstance(beanDefinition, beanName, args);
-            //注入属性
+        } catch (Exception e) {
+            throw new BeansException("Failed to create bean instance for: " + beanName, e);
+        }
+
+        try {
+            // 注入属性
             applyPropertyValues(bean, beanName, beanDefinition);
+        } catch (Exception e) {
+            throw new BeansException("Failed to apply property values for bean: " + beanName, e);
+        }
+
+        try {
             // 执行 Bean 的初始化方法和 BeanPostProcessor 的前置和后置处理方法
             bean = initializeBean(beanName, bean, beanDefinition);
         } catch (Exception e) {
-            throw new BeansException("Instantiation of bean failed", e);
+            throw new BeansException("Failed to initialize bean: " + beanName, e);
         }
+
 
         //注册可销毁的 Bean
         registerDisposableBeanIfNecessary(beanName, bean, beanDefinition);
@@ -176,7 +193,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
                 BeanUtil.setFieldValue(bean, name, value);
             }
         } catch (Exception e) {
-            throw new BeansException("Error setting property values：" + beanName);
+            throw new BeansException("Error setting property values：" + beanName,e);
         }
     }
 

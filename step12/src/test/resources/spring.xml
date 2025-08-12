@@ -1,22 +1,36 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <beans>
-
+    <!-- 代理目标：-->
     <bean id="userService" class="com.miniSpring.test.bean.UserService">
         <property name="uId" value="10001"/>
         <property name="name" value="CMD137"/>
     </bean>
 
+    <!-- 自动代理创建器：-->
     <bean class="com.miniSpring.aop.framework.autoproxy.DefaultAdvisorAutoProxyCreator"/>
 
-    <bean id="beforeAdvice" class="com.miniSpring.test.bean.PerformanceInterceptor"/>
+    <!-- aop组合1-->
+    <bean id="beforeAdvice1" class="com.miniSpring.test.bean.PerformanceInterceptor"/>
 
-    <bean id="methodInterceptor" class="com.miniSpring.aop.adapter.MethodBeforeAdviceInterceptor">
-        <property name="advice" ref="beforeAdvice"/>
+    <bean id="methodInterceptor1" class="com.miniSpring.aop.adapter.MethodBeforeAdviceInterceptor">
+        <property name="advice" ref="beforeAdvice1"/>
     </bean>
 
-    <bean id="pointcutAdvisor" class="com.miniSpring.aop.aspectj.AspectJExpressionPointcutAdvisor">
+    <bean id="pointcutAdvisor1" class="com.miniSpring.aop.aspectj.AspectJExpressionPointcutAdvisor">
         <property name="expression" value="execution(* com.miniSpring.test.bean.IUserService.*(..))"/>
-        <property name="advice" ref="methodInterceptor"/>
+        <property name="advice" ref="methodInterceptor1"/>
+    </bean>
+
+    <!-- aop组合2-->
+    <bean id="beforeAdvice2" class="com.miniSpring.test.bean.OrderInterceptor"/>
+
+    <bean id="methodInterceptor2" class="com.miniSpring.aop.adapter.MethodBeforeAdviceInterceptor">
+        <property name="advice" ref="beforeAdvice2"/>
+    </bean>
+
+    <bean id="pointcutAdvisor2" class="com.miniSpring.aop.aspectj.AspectJExpressionPointcutAdvisor">
+        <property name="expression" value="execution(* com.miniSpring.test.bean.IUserService.*(..))"/>
+        <property name="advice" ref="methodInterceptor2"/>
     </bean>
 
 </beans>

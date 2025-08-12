@@ -61,12 +61,14 @@ public class DefaultAdvisorAutoProxyCreator implements InstantiationAwareBeanPos
     public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
         // 排除Spring自身基础设施类，防止循环代理
         if (isInfrastructureClass(bean.getClass())) {
-            return null;
+            return bean; // 不代理，直接返回原对象
         }
 
         // 获取所有切面通知组合对象
         Collection<AspectJExpressionPointcutAdvisor> advisors =
                 beanFactory.getBeansOfType(AspectJExpressionPointcutAdvisor.class).values();
+
+
 
         for (AspectJExpressionPointcutAdvisor advisor : advisors) {
             // 判断切面切点是否匹配当前Bean类型
@@ -89,9 +91,11 @@ public class DefaultAdvisorAutoProxyCreator implements InstantiationAwareBeanPos
 
             */
 
-            // 通过beanFactory获取目标Bean实例（非重复创建）
-            Object target = beanFactory.getBean(beanName);
-            advisedSupport.setTargetSource(new TargetSource(target));
+//            // 通过beanFactory获取目标Bean实例（非重复创建）
+//            Object target = beanFactory.getBean(beanName);
+//            advisedSupport.setTargetSource(new TargetSource(target));
+            // 直接使用当前Bean实例作为目标对象（正确做法）
+            advisedSupport.setTargetSource(new TargetSource(bean));
 
             // 添加拦截器链，这里简单添加单个Advice的拦截器
             advisedSupport.addMethodInterceptor((MethodInterceptor) advisor.getAdvice());
@@ -106,8 +110,8 @@ public class DefaultAdvisorAutoProxyCreator implements InstantiationAwareBeanPos
             return new ProxyFactory(advisedSupport).getProxy();
         }
 
-        // 无匹配切面，返回null表示继续创建原Bean
-        return null;
+        // 无匹配切面，返回原Bean
+        return bean;
     }
 
 }

@@ -1,21 +1,17 @@
 package com.miniSpring.test.bean;
 
+import com.miniSpring.aop.MethodBeforeAdvice;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
 
-public class OrderInterceptor implements MethodInterceptor {
+import java.lang.reflect.Method;
 
-    private final String name;
+public class OrderInterceptor implements MethodBeforeAdvice {
 
-    public OrderInterceptor(String name) {
-        this.name = name;
-    }
 
     @Override
-    public Object invoke(MethodInvocation invocation) throws Throwable {
-        System.out.println(name + " - Before");
-        Object result = invocation.proceed();
-        System.out.println(name + " - After");
-        return result;
+    public void before(Method method, Object[] args, Object target) throws Throwable {
+        System.out.print("OrderInterceptor拦截器 - Before：");
+        System.out.println("\t拦截方法名称：" + method.getName());
     }
 }
