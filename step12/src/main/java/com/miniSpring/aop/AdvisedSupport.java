@@ -34,6 +34,20 @@ public class AdvisedSupport {
      */
     private MethodMatcher methodMatcher;
 
+    /*
+    默认false代表用JDK动态代理，true代表用Cglib。
+     */
+    private boolean proxyTargetClass = false;
+
+    public boolean isProxyTargetClass() {
+        return proxyTargetClass;
+    }
+
+    public void setProxyTargetClass(boolean proxyTargetClass) {
+        this.proxyTargetClass = proxyTargetClass;
+    }
+
+
     // ========== getter/setter ==========
 
     public TargetSource getTargetSource() {

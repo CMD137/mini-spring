@@ -6,5 +6,17 @@
         <property name="name" value="CMD137"/>
     </bean>
 
+    <bean class="com.miniSpring.aop.framework.autoproxy.DefaultAdvisorAutoProxyCreator"/>
+
+    <bean id="beforeAdvice" class="com.miniSpring.test.bean.PerformanceInterceptor"/>
+
+    <bean id="methodInterceptor" class="com.miniSpring.aop.adapter.MethodBeforeAdviceInterceptor">
+        <property name="advice" ref="beforeAdvice"/>
+    </bean>
+
+    <bean id="pointcutAdvisor" class="com.miniSpring.aop.aspectj.AspectJExpressionPointcutAdvisor">
+        <property name="expression" value="execution(* com.miniSpring.test.bean.IUserService.*(..))"/>
+        <property name="advice" ref="methodInterceptor"/>
+    </bean>
 
 </beans>

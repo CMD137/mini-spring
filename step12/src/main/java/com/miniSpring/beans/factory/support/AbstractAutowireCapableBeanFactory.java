@@ -6,10 +6,7 @@ import com.miniSpring.beans.BeansException;
 import com.miniSpring.beans.PropertyValue;
 import com.miniSpring.beans.PropertyValues;
 import com.miniSpring.beans.factory.*;
-import com.miniSpring.beans.factory.config.AutowireCapableBeanFactory;
-import com.miniSpring.beans.factory.config.BeanDefinition;
-import com.miniSpring.beans.factory.config.BeanPostProcessor;
-import com.miniSpring.beans.factory.config.BeanReference;
+import com.miniSpring.beans.factory.config.*;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
@@ -23,6 +20,12 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
     protected Object createBean(String beanName, BeanDefinition beanDefinition, Object[] args) throws BeansException {
         Object bean = null;
         try {
+            // 提前代理部分，用于处理缓存依赖问题，以后再处理，目前先直接返回null，正常走创建流程，在postProcessAfterInitialization里做代理。
+            bean = resolveBeforeInstantiation(beanName, beanDefinition);
+            if (null != bean) {
+                return bean;
+            }
+
             //创建实例
             bean = createBeanInstance(beanDefinition, beanName, args);
             //注入属性
@@ -201,4 +204,43 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 
         }
     }
+
+    /**
+     * 在 Bean 实例化前调用，尝试通过 InstantiationAwareBeanPostProcessor
+     * 返回代理对象，若有则跳过默认实例化。
+     * 返回非空对象时，还会执行后置初始化处理。
+     */
+    protected Object resolveBeforeInstantiation(String beanName, BeanDefinition beanDefinition) {
+        // 调用所有 InstantiationAwareBeanPostProcessor，尝试返回代理或替代对象
+        Object bean = applyBeanPostProcessorBeforeInstantiation(beanDefinition.getBeanClass(), beanName);
+
+        if (bean != null) {
+            // 如果前置处理返回了代理对象，继续调用所有 BeanPostProcessor 的
+            // postProcessAfterInitialization，保证代理对象完成生命周期的后置处理
+            bean = applyBeanPostProcessorsAfterInitialization(bean, beanName);
+        }
+
+        // 返回代理对象（非空）或 null（继续默认实例化）
+        return bean;
+    }
+
+    /**
+     * 遍历所有 BeanPostProcessor，调用实现了 InstantiationAwareBeanPostProcessor
+     * 的 postProcessBeforeInstantiation，返回第一个非空结果。
+     */
+    public Object applyBeanPostProcessorBeforeInstantiation(Class<?> beanClass, String beanName) throws BeansException {
+        // 遍历所有注册的 BeanPostProcessor
+        for (BeanPostProcessor processor : getBeanPostProcessors()) {
+            // 过滤出实现了 InstantiationAwareBeanPostProcessor 的处理器
+            if (processor instanceof InstantiationAwareBeanPostProcessor) {
+                // 调用 postProcessBeforeInstantiation 方法尝试返回代理对象或替代 Bean
+                Object result = ((InstantiationAwareBeanPostProcessor) processor).postProcessBeforeInstantiation(beanClass, beanName);
+                // 如果返回非空对象，表示已创建代理或替代对象，直接返回，跳过默认实例化
+                if (result != null) return result;
+            }
+        }
+        // 如果所有处理器都未返回代理，返回 null，继续默认实例化流程
+        return null;
+    }
+
 }
