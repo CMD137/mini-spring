@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans>
+
+    <bean class="com.miniSpring.beans.factory.PropertyPlaceholderConfigurer">
+        <property name="location" value="classpath:token.properties"/>
+    </bean>
+
+    <bean id="userService" class="com.miniSpring.test.bean.UserService">
+        <property name="token" value="${token}"/>
+    </bean>
+
+</beans>

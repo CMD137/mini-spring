@@ -1,0 +1,28 @@
+package com.miniSpring.beans.factory;
+
+import com.miniSpring.beans.BeansException;
+
+import java.util.Map;
+
+/**
+ * 	在只有getBean()的BeanFactory基础上，增加了批量查询和列出所有 Bean 的功能
+ */
+public interface ListableBeanFactory extends BeanFactory {
+
+    /**
+     * 按照类型返回 Bean 实例
+     * @param type
+     * @param <T>
+     * @return
+     * @throws BeansException
+     */
+    <T> Map<String, T> getBeansOfType(Class<T> type) throws BeansException;
+
+    /**
+     * Return the names of all beans defined in this registry.
+     *
+     * 返回注册表中所有的Bean名称
+     */
+    String[] getBeanDefinitionNames();
+
+}
