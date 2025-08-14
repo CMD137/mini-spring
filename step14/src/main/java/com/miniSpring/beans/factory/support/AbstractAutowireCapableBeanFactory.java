@@ -278,6 +278,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
      * @param beanDefinition  Bean 对应的定义信息（包含属性、构造参数等）
      */
     protected void applyBeanPostProcessorsBeforeApplyingPropertyValues(String beanName, Object bean, BeanDefinition beanDefinition) {
+
         // 遍历当前容器中注册的所有 BeanPostProcessor
         for (BeanPostProcessor beanPostProcessor : getBeanPostProcessors()) {
             // 只有 InstantiationAwareBeanPostProcessor 才能在属性设置前做处理

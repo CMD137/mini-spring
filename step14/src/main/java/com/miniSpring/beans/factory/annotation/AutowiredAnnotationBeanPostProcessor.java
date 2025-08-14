@@ -49,10 +49,6 @@ public class AutowiredAnnotationBeanPostProcessor implements InstantiationAwareB
         // 3. 处理 @Autowired 注解：注入 Bean 对象
         for (Field field : declaredFields) {
             Autowired autowiredAnnotation = field.getAnnotation(Autowired.class);
-
-            //debug：
-            System.out.println("DEBUG:\nbean:"+autowiredAnnotation.getClass().getName());
-
             if (null != autowiredAnnotation) {
                 Class<?> fieldType = field.getType();
                 String dependentBeanName = null;
