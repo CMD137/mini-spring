@@ -1,0 +1,48 @@
+package com.miniSpring.aop;
+
+/**
+ * 封装被代理的目标对象，提供目标实例和类型信息
+ */
+public class TargetSource {
+
+    private final Object target;
+
+    public TargetSource(Object target) {
+        this.target = target;
+    }
+
+    /**
+     * 获取目标对象的实际类型（类）
+     * 例如：UserService.class
+     */
+    public Class<?> getTargetType() {
+        return this.target.getClass();
+    }
+
+    /**
+     * 获取目标对象实现的所有接口
+     * 例如：[IUserService.class]
+     */
+    public Class<?>[] getTargetInterfaces() {
+        return getTargetType().getInterfaces();
+    }
+
+    /**
+     * 获取目标对象实例
+     */
+    public Object getTarget() {
+        return this.target;
+    }
+
+    public Class<?> getTargetClass() {
+        // 返回原始类类型，而不是接口
+        // 如果目标是代理类（比如 CGLIB 生成的），也能返回其父类
+        Class<?> clazz = this.target.getClass();
+        // 防止 CGLIB 子类导致的接口丢失问题
+        if (clazz.getName().contains("$$")) {
+            return clazz.getSuperclass();
+        }
+        return clazz;
+    }
+
+}

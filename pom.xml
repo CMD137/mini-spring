@@ -23,6 +23,7 @@
         <module>step11</module>
         <module>step12</module>
         <module>step13</module>
+        <module>step14</module>
     </modules>
 
     <properties>
