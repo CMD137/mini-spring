@@ -17,6 +17,7 @@
     <bean id="pointcutAdvisor1" class="com.miniSpring.aop.aspectj.AspectJExpressionPointcutAdvisor">
         <property name="expression" value="execution(* com.miniSpring.test.bean.IUserService.*(..))"/>
         <property name="advice" ref="methodInterceptor1"/>
+        <property name="order" value="3"/>
     </bean>
 
     <!-- aop组合2-->
@@ -29,18 +30,20 @@
     <bean id="pointcutAdvisor2" class="com.miniSpring.aop.aspectj.AspectJExpressionPointcutAdvisor">
         <property name="expression" value="execution(* com.miniSpring.test.bean.IUserService.*(..))"/>
         <property name="advice" ref="methodInterceptor2"/>
+        <property name="order" value="2"/>
     </bean>
 
     <!-- aop组合3-->
-    <bean id="beforeAdvice3" class="com.miniSpring.test.bean.LogAroundAdvice"/>
+    <bean id="aroundAdvice3" class="com.miniSpring.test.bean.LogAroundAdvice"/>
 
     <bean id="methodInterceptor3" class="com.miniSpring.aop.adapter.MethodAroundAdviceInterceptor">
-        <property name="advice" ref="beforeAdvice3"/>
+        <property name="advice" ref="aroundAdvice3"/>
     </bean>
 
     <bean id="pointcutAdvisor3" class="com.miniSpring.aop.aspectj.AspectJExpressionPointcutAdvisor">
         <property name="expression" value="execution(* com.miniSpring.test.bean.IUserService.*(..))"/>
         <property name="advice" ref="methodInterceptor3"/>
+        <property name="order" value="1"/>
     </bean>
 
 

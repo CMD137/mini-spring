@@ -1,17 +1,18 @@
 package com.miniSpring.aop.framework;
 
-import com.miniSpring.aop.AdvisedSupport;
-import com.miniSpring.aop.Advisor;
-import com.miniSpring.aop.MethodBeforeAdvice;
-import com.miniSpring.aop.PointcutAdvisor;
+import com.miniSpring.aop.*;
+import com.miniSpring.aop.adapter.MethodAfterAdviceInterceptor;
+import com.miniSpring.aop.adapter.MethodAroundAdviceInterceptor;
 import com.miniSpring.aop.adapter.MethodBeforeAdviceInterceptor;
 import net.sf.cglib.proxy.Enhancer;
 import net.sf.cglib.proxy.MethodInterceptor;
 import net.sf.cglib.proxy.MethodProxy;
 import org.aopalliance.aop.Advice;
+import com.miniSpring.core.Ordered;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 public class Cglib2AopProxy implements AopProxy {
@@ -27,8 +28,30 @@ public class Cglib2AopProxy implements AopProxy {
         Enhancer enhancer = new Enhancer();
         enhancer.setSuperclass(advised.getTargetSource().getTarget().getClass());
         enhancer.setInterfaces(advised.getTargetSource().getTargetInterfaces());
-        enhancer.setCallback(new DynamicAdvisedInterceptor(advised));
+        // 传入当前 Cglib2AopProxy 实例，供内部类调用 adaptAdviceToInterceptor
+        enhancer.setCallback(new DynamicAdvisedInterceptor(advised, this));
         return enhancer.create();
+    }
+
+    /**
+     * 将 Advice 转换成 MethodInterceptor 列表
+     */
+    public List<org.aopalliance.intercept.MethodInterceptor> adaptAdviceToInterceptor(Advice advice) {
+        List<org.aopalliance.intercept.MethodInterceptor> interceptors = new ArrayList<>();
+
+        if (advice instanceof MethodAroundAdvice) {
+            interceptors.add(new MethodAroundAdviceInterceptor((MethodAroundAdvice) advice));
+        } else if (advice instanceof MethodBeforeAdvice) {
+            interceptors.add(new MethodBeforeAdviceInterceptor((MethodBeforeAdvice) advice));
+        } else if (advice instanceof MethodAfterAdvice) {
+            interceptors.add(new MethodAfterAdviceInterceptor((MethodAfterAdvice) advice));
+        } else if (advice instanceof org.aopalliance.intercept.MethodInterceptor) {
+            interceptors.add((org.aopalliance.intercept.MethodInterceptor) advice);
+        } else {
+            throw new IllegalArgumentException("Unsupported advice type: " + advice.getClass());
+        }
+
+        return interceptors;
     }
 
     /**
@@ -38,20 +61,21 @@ public class Cglib2AopProxy implements AopProxy {
     private static class DynamicAdvisedInterceptor implements MethodInterceptor {
 
         private final AdvisedSupport advised;
+        private final Cglib2AopProxy proxyInstance;
 
-        public DynamicAdvisedInterceptor(AdvisedSupport advised) {
+        public DynamicAdvisedInterceptor(AdvisedSupport advised, Cglib2AopProxy proxyInstance) {
             this.advised = advised;
+            this.proxyInstance = proxyInstance;
         }
 
         @Override
         public Object intercept(Object proxy, Method method, Object[] args, MethodProxy methodProxy) throws Throwable {
-            // 1. 检查是否是Object类的方法（如toString、hashCode等），这些方法通常不需要增强
+            // 1. Object 类方法直接调用，不做增强
             if (Object.class.equals(method.getDeclaringClass())) {
                 return method.invoke(advised.getTargetSource().getTarget(), args);
             }
 
-
-            // 2. 获取匹配的Advisor
+            // 2. 获取匹配的 Advisor
             List<PointcutAdvisor> eligibleAdvisors = new ArrayList<>();
             for (PointcutAdvisor advisor : advised.getAdvisors()) {
                 if (advisor.getPointcut().getMethodMatcher()
@@ -60,39 +84,31 @@ public class Cglib2AopProxy implements AopProxy {
                 }
             }
 
-            // 3. 把Advisor转换成MethodInterceptor链
+            // 3. 对 Advisors 按 Order 排序
+            eligibleAdvisors.sort(Comparator.comparingInt(advisor -> ((Ordered) advisor).getOrder()));
+
+
+            // 4. 转换 Advisors → MethodInterceptors（通过外部 proxyInstance 调用）
             List<org.aopalliance.intercept.MethodInterceptor> interceptorChain = new ArrayList<>();
             for (Advisor advisor : eligibleAdvisors) {
-                // 获取当前Advisor对应的Advice（增强逻辑）
-                Advice advice = advisor.getAdvice();
-
-                if (advice instanceof org.aopalliance.intercept.MethodInterceptor) {
-                    // 如果Advice本身就是MethodInterceptor，直接加入拦截器链
-                    interceptorChain.add((org.aopalliance.intercept.MethodInterceptor) advice);
-                } else if (advice instanceof MethodBeforeAdvice) {
-                    // 如果是前置通知接口，使用MethodBeforeAdviceInterceptor适配成MethodInterceptor
-                    interceptorChain.add(new MethodBeforeAdviceInterceptor((MethodBeforeAdvice) advice));
-                } else {
-                    // 目前不支持的Advice类型，抛出异常提示
-                    throw new IllegalArgumentException("Unsupported advice type: " + advice.getClass());
-                }
+                interceptorChain.addAll(proxyInstance.adaptAdviceToInterceptor(advisor.getAdvice()));
             }
 
-                // 执行拦截器链，传入自定义的 CglibMethodInvocation
-                CglibMethodInvocation invocation = new CglibMethodInvocation(
-                        advised.getTargetSource().getTarget(),
-                        method,
-                        args,
-                        methodProxy,
-                        interceptorChain
-                );
-                return invocation.proceed();
+            // 5. 执行拦截器链，传入自定义 CglibMethodInvocation
+            CglibMethodInvocation invocation = new CglibMethodInvocation(
+                    advised.getTargetSource().getTarget(),
+                    method,
+                    args,
+                    methodProxy,
+                    interceptorChain
+            );
+            return invocation.proceed();
         }
     }
 
     /**
      * CglibMethodInvocation 继承 ReflectiveMethodInvocation，复用拦截器链调用逻辑，
-     * 并重写 proceed() 用 CGLIB 的 methodProxy 来调用目标方法，避免反射调用。
+     * 并重写 proceed() 用 CGLIB 的 methodProxy 调用目标方法
      */
     private static class CglibMethodInvocation extends ReflectiveMethodInvocation {
 
@@ -107,7 +123,6 @@ public class Cglib2AopProxy implements AopProxy {
         @Override
         public Object proceed() throws Throwable {
             if (currentInterceptorIndex == methodInterceptorList.size() - 1) {
-                // 所有拦截器执行完后，使用 CGLIB 方式调用目标方法，效率更高
                 return methodProxy.invoke(target, arguments);
             }
             currentInterceptorIndex++;
