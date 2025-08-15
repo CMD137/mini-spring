@@ -1,11 +1,12 @@
 package com.miniSpring.aop.framework;
 
-import com.miniSpring.aop.AdvisedSupport;
-import com.miniSpring.aop.Advisor;
-import com.miniSpring.aop.MethodBeforeAdvice;
-import com.miniSpring.aop.PointcutAdvisor;
+import com.miniSpring.aop.*;
+import com.miniSpring.aop.adapter.MethodAfterAdviceInterceptor;
+import com.miniSpring.aop.adapter.MethodAroundAdviceInterceptor;
 import com.miniSpring.aop.adapter.MethodBeforeAdviceInterceptor;
+import com.miniSpring.aop.aspectj.AspectJExpressionPointcutAdvisor;
 import com.miniSpring.beans.BeansException;
+import com.miniSpring.core.Ordered;
 import org.aopalliance.aop.Advice;
 import org.aopalliance.intercept.MethodInterceptor;
 
@@ -13,6 +14,7 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -24,14 +26,14 @@ public class JdkDynamicAopProxy implements AopProxy, InvocationHandler {
     /**
      * 封装了被代理对象、方法匹配器和方法拦截器等信息的配置类
      */
-    private final AdvisedSupport advised;
+    private final AdvisedSupport advisedSupport;
 
     /**
      * 构造函数，传入被代理的配置信息
      * @param advised 代理相关的配置，包括目标对象、方法匹配器、拦截器等
      */
     public JdkDynamicAopProxy(AdvisedSupport advised) {
-        this.advised = advised;
+        this.advisedSupport = advised;
     }
 
     /**
@@ -42,7 +44,7 @@ public class JdkDynamicAopProxy implements AopProxy, InvocationHandler {
     public Object getProxy() {
         // 使用当前线程上下文类加载器，目标类接口列表，以及当前对象（作为 InvocationHandler）
         // 1. 获取目标对象的Class（如UserService.class）
-        Class<?> targetClass = advised.getTargetSource().getTargetClass();
+        Class<?> targetClass = advisedSupport.getTargetSource().getTargetClass();
 
         //debug:
         //System.out.println("目标类：" + targetClass.getName());
@@ -83,40 +85,32 @@ public class JdkDynamicAopProxy implements AopProxy, InvocationHandler {
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
         // 1. 检查是否是Object类的方法（如toString、hashCode等），这些方法通常不需要增强
         if (Object.class.equals(method.getDeclaringClass())) {
-            return method.invoke(advised.getTargetSource().getTarget(), args);
+            return method.invoke(advisedSupport.getTargetSource().getTarget(), args);
         }
 
 
         // 2. 获取匹配的Advisor
-        List<PointcutAdvisor> eligibleAdvisors = new ArrayList<>();
-        for (PointcutAdvisor advisor : advised.getAdvisors()) {
+        List<AspectJExpressionPointcutAdvisor> eligibleAdvisors = new ArrayList<>();
+        for (AspectJExpressionPointcutAdvisor advisor : advisedSupport.getAdvisors()) {
             if (advisor.getPointcut().getMethodMatcher()
-                    .matches(method, advised.getTargetSource().getTarget().getClass())) {
+                    .matches(method, advisedSupport.getTargetSource().getTarget().getClass())) {
                 eligibleAdvisors.add(advisor);
             }
         }
 
-        // 3. 把Advisor转换成MethodInterceptor链
+        // 3. 对 Advisors 按 Order 排序
+        eligibleAdvisors.sort(Comparator.comparingInt(Ordered::getOrder));
+
+
+        // 4. 转换 Advisors → MethodInterceptors（使用适配器注册中心）
         List<MethodInterceptor> interceptorChain = new ArrayList<>();
         for (Advisor advisor : eligibleAdvisors) {
-            // 获取当前Advisor对应的Advice（增强逻辑）
-            Advice advice = advisor.getAdvice();
-
-            if (advice instanceof MethodInterceptor) {
-                // 如果Advice本身就是MethodInterceptor，直接加入拦截器链
-                interceptorChain.add((MethodInterceptor) advice);
-            } else if (advice instanceof MethodBeforeAdvice) {
-                // 如果是前置通知接口，使用MethodBeforeAdviceInterceptor适配成MethodInterceptor
-                interceptorChain.add(new MethodBeforeAdviceInterceptor((MethodBeforeAdvice) advice));
-            } else {
-                // 目前不支持的Advice类型，抛出异常提示
-                throw new IllegalArgumentException("Unsupported advice type: " + advice.getClass());
-            }
+            interceptorChain.addAll(adaptAdviceToInterceptor(advisor.getAdvice()));
         }
 
         // 4. 创建方法调用器，封装目标对象、方法、参数和拦截器链
         ReflectiveMethodInvocation invocation = new ReflectiveMethodInvocation(
-                advised.getTargetSource().getTarget(),
+                advisedSupport.getTargetSource().getTarget(),
                 method,
                 args,
                 interceptorChain
@@ -125,6 +119,29 @@ public class JdkDynamicAopProxy implements AopProxy, InvocationHandler {
         // 5. 执行拦截器链（责任链模式），最终调用目标方法
         return invocation.proceed();
 
+    }
+
+    /**
+     * 把 Advice 转换成 MethodInterceptor 列表
+     * 模拟 Spring 的 AdvisorAdapterRegistry
+     */
+    private List<MethodInterceptor> adaptAdviceToInterceptor(Advice advice) {
+        List<MethodInterceptor> interceptors = new ArrayList<>();
+
+        if (advice instanceof MethodAroundAdvice) {
+            interceptors.add(new MethodAroundAdviceInterceptor((MethodAroundAdvice) advice));
+        } else if (advice instanceof MethodBeforeAdvice) {
+            interceptors.add(new MethodBeforeAdviceInterceptor((MethodBeforeAdvice) advice));
+        } else if (advice instanceof MethodAfterAdvice) {
+            interceptors.add(new MethodAfterAdviceInterceptor((MethodAfterAdvice) advice));
+        } else if (advice instanceof MethodInterceptor) {
+            // 仅对已经实现了 MethodInterceptor 的 Advice 支持直接加入
+            interceptors.add((MethodInterceptor) advice);
+        } else {
+            throw new IllegalArgumentException("Unsupported advice type: " + advice.getClass());
+        }
+
+        return interceptors;
     }
 
 

@@ -1,5 +1,7 @@
 package com.miniSpring.aop;
 
+import com.miniSpring.aop.aspectj.AspectJExpressionPointcutAdvisor;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,7 +25,7 @@ public class AdvisedSupport {
     private TargetSource targetSource;
 
     // 改成存 Advisor 列表，而非 MethodInterceptor 列表
-    private List<PointcutAdvisor> advisors = new ArrayList<>();
+    private List<AspectJExpressionPointcutAdvisor> advisors = new ArrayList<AspectJExpressionPointcutAdvisor>();
 
     /**
      * 方法匹配器，判断某个方法是否需要被增强
@@ -56,11 +58,11 @@ public class AdvisedSupport {
         this.targetSource = targetSource;
     }
 
-    public List<PointcutAdvisor> getAdvisors() {
+    public List<AspectJExpressionPointcutAdvisor> getAdvisors() {
         return advisors;
     }
 
-    public void setAdvisors(List<PointcutAdvisor> advisors) {
+    public void setAdvisors(List<AspectJExpressionPointcutAdvisor> advisors) {
         this.advisors = advisors;
     }
 
@@ -77,7 +79,7 @@ public class AdvisedSupport {
     /**
      * 方便向拦截器链添加一个advisor
      */
-    public void addAdvisor(PointcutAdvisor advisor) {
+    public void addAdvisor(AspectJExpressionPointcutAdvisor advisor) {
         this.advisors.add(advisor);
     }
 }

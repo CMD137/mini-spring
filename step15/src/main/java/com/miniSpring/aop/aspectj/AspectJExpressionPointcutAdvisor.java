@@ -2,6 +2,7 @@ package com.miniSpring.aop.aspectj;
 
 import com.miniSpring.aop.Pointcut;
 import com.miniSpring.aop.PointcutAdvisor;
+import com.miniSpring.core.Ordered;
 import org.aopalliance.aop.Advice;
 
 /**
@@ -14,7 +15,7 @@ import org.aopalliance.aop.Advice;
  *
  * 通过设置表达式和 Advice，Spring AOP 可以在匹配的方法上应用对应的通知。
  */
-public class AspectJExpressionPointcutAdvisor implements PointcutAdvisor {
+public class AspectJExpressionPointcutAdvisor implements PointcutAdvisor, Ordered {
 
     // AspectJ 表达式切点，负责匹配目标方法
     private AspectJExpressionPointcut pointcut;
@@ -24,6 +25,18 @@ public class AspectJExpressionPointcutAdvisor implements PointcutAdvisor {
 
     // AspectJ 切点表达式字符串
     private String expression;
+
+    private int order = Integer.MAX_VALUE; // 默认优先级最低
+
+    @Override
+    public int getOrder() {
+        return this.order;
+    }
+
+    public void setOrder(int order) {
+        this.order = order;
+    }
+
 
     /**
      * 设置 AspectJ 表达式

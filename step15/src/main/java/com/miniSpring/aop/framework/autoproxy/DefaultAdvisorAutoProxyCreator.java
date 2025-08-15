@@ -11,7 +11,6 @@ import com.miniSpring.beans.factory.config.InstantiationAwareBeanPostProcessor;
 import com.miniSpring.beans.factory.support.DefaultListableBeanFactory;
 import org.aopalliance.aop.Advice;
 
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -73,40 +72,12 @@ public class DefaultAdvisorAutoProxyCreator implements InstantiationAwareBeanPos
 
         List<AspectJExpressionPointcutAdvisor> advisors = new ArrayList<>(advisorCollection);
 
-        //直接用反射创建新对象，跳过 Spring 容器管理
-            /*
-            TargetSource targetSource = null;
-            try {
-                targetSource = new TargetSource(beanClass.getDeclaredConstructor().newInstance());
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-
-            */
 
         // 准备代理相关配置
         AdvisedSupport advisedSupport = new AdvisedSupport();
         advisedSupport.setTargetSource(new TargetSource(bean));
         advisedSupport.setProxyTargetClass(bean.getClass().getInterfaces().length == 0);
 
-
-        //debug:
-//        for (AspectJExpressionPointcutAdvisor advisor : advisors) {
-//            System.out.println("Advice类：" + advisor.getAdvice().getClass().getName());
-//
-//            // 取切点的 MethodMatcher
-//            MethodMatcher mm = advisor.getPointcut().getMethodMatcher();
-//
-//            // 假设目标类是 targetClass
-//            Class<?> targetClass = advisedSupport.getTargetSource().getTarget().getClass();
-//
-//            // 遍历目标类所有方法，检查是否匹配切点
-//            for (Method method : targetClass.getMethods()) {
-//                if (mm.matches(method, targetClass)) {
-//                    System.out.println("匹配的方法名: " + method.getName());
-//                }
-//            }
-//        }
 
         // 遍历所有的切面通知器(Advisor)
         for (AspectJExpressionPointcutAdvisor advisor : advisors) {
