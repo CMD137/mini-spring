@@ -21,7 +21,7 @@ public class MethodBeforeAdviceInterceptor implements MethodInterceptor {
      */
     private MethodBeforeAdvice advice;
 
-    // 添加无参构造函数（关键）
+    // 添加无参构造函数,用于实例化（关键）
     public MethodBeforeAdviceInterceptor() {
     }
 

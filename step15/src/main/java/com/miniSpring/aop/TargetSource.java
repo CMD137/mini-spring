@@ -1,5 +1,7 @@
 package com.miniSpring.aop;
 
+import com.miniSpring.util.ClassUtils;
+
 /**
  * 封装被代理的目标对象，提供目标实例和类型信息
  */
@@ -35,13 +37,8 @@ public class TargetSource {
     }
 
     public Class<?> getTargetClass() {
-        // 返回原始类类型，而不是接口
-        // 如果目标是代理类（比如 CGLIB 生成的），也能返回其父类
         Class<?> clazz = this.target.getClass();
-        // 防止 CGLIB 子类导致的接口丢失问题
-        if (clazz.getName().contains("$$")) {
-            return clazz.getSuperclass();
-        }
+        clazz = ClassUtils.isCglibProxyClass(clazz) ? clazz.getSuperclass() : clazz;
         return clazz;
     }
 
