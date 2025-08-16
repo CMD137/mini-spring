@@ -15,6 +15,9 @@ public class UserService implements IUserService {
     @Autowired
     private UserDao userDao;
 
+    @Autowired
+    private TempService tempService;
+
     public String queryUserInfo() {
         try {
             Thread.sleep(new Random(1).nextInt(100));
@@ -22,6 +25,10 @@ public class UserService implements IUserService {
             e.printStackTrace();
         }
         return userDao.queryUserName("10001") + "，" + token;
+    }
+
+    public void useTempService() {
+        tempService.talk();
     }
 
     @Override

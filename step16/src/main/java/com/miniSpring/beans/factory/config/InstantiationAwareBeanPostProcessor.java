@@ -31,5 +31,27 @@ public interface InstantiationAwareBeanPostProcessor extends BeanPostProcessor {
      */
     PropertyValues postProcessPropertyValues(PropertyValues pvs, Object bean, String beanName) throws BeansException;
 
+
+    /**
+     * 在 Bean 对象执行初始化方法之后，执行此方法
+     *
+     * @param bean
+     * @param beanName
+     * @return
+     * @throws BeansException
+     */
+    boolean postProcessAfterInstantiation(Object bean, String beanName) throws BeansException;
+
+
+    /**
+     * 用于提前斯暴露Bean的引用，解决循环依赖问题
+     * 属于InstantiationAwareBeanPostProcessor接口的默认方法
+     * @param bean 实例化后的Bean对象
+     * @param beanName Bean的名称
+     * @return 早期暴露的Bean引用（默认返回原始Bean）
+     */
+    default Object getEarlyBeanReference(Object bean, String beanName) {
+        return bean;
+    }
 }
 

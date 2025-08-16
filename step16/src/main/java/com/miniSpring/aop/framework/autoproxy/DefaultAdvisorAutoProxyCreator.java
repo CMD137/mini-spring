@@ -14,9 +14,7 @@ import com.miniSpring.beans.factory.config.InstantiationAwareBeanPostProcessor;
 import com.miniSpring.beans.factory.support.DefaultListableBeanFactory;
 import org.aopalliance.aop.Advice;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 
 /**
  * 自动代理创建器，自动扫描容器中所有的 AspectJExpressionPointcutAdvisor，
@@ -27,6 +25,10 @@ import java.util.List;
 public class DefaultAdvisorAutoProxyCreator implements InstantiationAwareBeanPostProcessor, BeanFactoryAware {
 
     private DefaultListableBeanFactory beanFactory;
+
+    // 记录已经生成过早期代理对象的 Bean 名称
+    private final Set<Object> earlyProxyReferences =
+            Collections.synchronizedSet(new HashSet<>());
 
     @Override
     public void setBeanFactory(BeanFactory beanFactory) throws BeansException {
@@ -64,6 +66,30 @@ public class DefaultAdvisorAutoProxyCreator implements InstantiationAwareBeanPos
 
     @Override
     public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
+        if (!earlyProxyReferences.contains(beanName)) {
+            return wrapIfNecessary(bean, beanName);
+        }
+        // 已经提前代理过，直接返回早期代理对象，避免二次代理
+        return bean;
+    }
+
+    @Override
+    public PropertyValues postProcessPropertyValues(PropertyValues pvs, Object bean, String beanName) throws BeansException {
+        return pvs;
+    }
+
+    @Override
+    public boolean postProcessAfterInstantiation(Object bean, String beanName) throws BeansException {
+        return true;
+    }
+
+    @Override
+    public Object getEarlyBeanReference(Object bean, String beanName) {
+        earlyProxyReferences.add(beanName);
+        return wrapIfNecessary(bean, beanName);
+    }
+
+    private Object wrapIfNecessary(Object bean, String beanName) {
         // 排除Spring自身基础设施类，防止循环代理
         if (isInfrastructureClass(bean.getClass())) {
             return bean; // 不代理，直接返回原对象
@@ -101,9 +127,5 @@ public class DefaultAdvisorAutoProxyCreator implements InstantiationAwareBeanPos
         return bean;
     }
 
-    @Override
-    public PropertyValues postProcessPropertyValues(PropertyValues pvs, Object bean, String beanName) throws BeansException {
-        return pvs;
-    }
 
 }

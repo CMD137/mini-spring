@@ -15,7 +15,7 @@
     </bean>
 
     <bean id="pointcutAdvisor1" class="com.miniSpring.aop.aspectj.AspectJExpressionPointcutAdvisor">
-        <property name="expression" value="execution(* com.miniSpring.test.bean.IUserService.*(..))"/>
+        <property name="expression" value="execution(* com.miniSpring.test.bean.IUserService.queryUserInfo(..))"/>
         <property name="advice" ref="methodInterceptor1"/>
         <property name="order" value="3"/>
     </bean>
@@ -28,7 +28,7 @@
     </bean>
 
     <bean id="pointcutAdvisor2" class="com.miniSpring.aop.aspectj.AspectJExpressionPointcutAdvisor">
-        <property name="expression" value="execution(* com.miniSpring.test.bean.IUserService.*(..))"/>
+        <property name="expression" value="execution(* com.miniSpring.test.bean.IUserService.queryUserInfo(..))"/>
         <property name="advice" ref="methodInterceptor2"/>
         <property name="order" value="2"/>
     </bean>
@@ -41,11 +41,15 @@
     </bean>
 
     <bean id="pointcutAdvisor3" class="com.miniSpring.aop.aspectj.AspectJExpressionPointcutAdvisor">
-        <property name="expression" value="execution(* com.miniSpring.test.bean.IUserService.*(..))"/>
+        <property name="expression" value="execution(* com.miniSpring.test.bean.IUserService.queryUserInfo(..))"/>
         <property name="advice" ref="methodInterceptor3"/>
         <property name="order" value="1"/>
     </bean>
 
 
     <component-scan base-package="com.miniSpring.test.bean"/>
+
+<!--    <bean id="tempService" class="com.miniSpring.test.bean.TempService">-->
+<!--        <property name="userService" ref="userService"></property>-->
+<!--    </bean>-->
 </beans>

@@ -13,13 +13,13 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class DefaultSingletonBeanRegistry implements SingletonBeanRegistry {
     // 一级缓存，普通对象
-    private Map<String, Object> singletonObjects = new ConcurrentHashMap<>();
+    protected Map<String, Object> singletonObjects = new ConcurrentHashMap<>();
 
     // 二级缓存，提前暴漏对象，没有完全实例化的对象
     protected final Map<String, Object> earlySingletonObjects = new HashMap<String, Object>();
 
     // 三级缓存，存放代理对象
-    private final Map<String, ObjectFactory<?>> singletonFactories = new HashMap<String, ObjectFactory<?>>();
+    protected final Map<String, ObjectFactory<?>> singletonFactories = new HashMap<String, ObjectFactory<?>>();
 
     //注册了销毁回调的 Bean 对象的容器
     private final Map<String, DisposableBean> disposableBeans = new LinkedHashMap<>();
@@ -78,6 +78,7 @@ public class DefaultSingletonBeanRegistry implements SingletonBeanRegistry {
     }
 
     /**
+     * 缓存转移
      * 注册单例对象到一级缓存，同时清理二、三级缓存
      */
     public void registerSingleton(String beanName, Object singletonObject) {

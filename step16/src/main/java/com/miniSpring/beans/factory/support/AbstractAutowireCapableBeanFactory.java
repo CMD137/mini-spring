@@ -38,6 +38,28 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
             throw new BeansException("Failed to create bean instance for: " + beanName, e);
         }
 
+        // --- 提前暴露三级缓存（仅单例） ---
+        //这里只是保存该bean的创建方法，还没有执行
+        /**
+         * 执行时机：
+         * 假设这里A被代理，创建A，暴露了第三级缓存，进入属性注入，创建B，
+         * B在属性注入式就拿到了A的第三级缓存，并执行A工厂的getObject拿到了A（的代理对象），存入第二级缓存（见getSingleton方法），走完B的创建过程，
+         * 回到了A的属性注入过程，走完B的创建过程
+         */
+        if (beanDefinition.isSingleton()) {
+            Object finalBean = bean;
+            addSingletonFactory(beanName, () -> getEarlyBeanReference(beanName, beanDefinition, finalBean));
+        }
+
+        // -----------------------------
+        // postProcessAfterInstantiation，可能阻止属性注入
+        // -----------------------------
+        boolean continueWithPropertyPopulation = applyBeanPostProcessorsAfterInstantiation(beanName, bean);
+        if (!continueWithPropertyPopulation) {
+            return bean; // 不再进行属性填充
+        }
+
+
         try {
             // 在设置 Bean 属性之前，允许 AutowiredAnnotationBeanPostProcessor 修改属性值(@Autowired、@Value)
             applyBeanPostProcessorsBeforeApplyingPropertyValues(beanName, bean, beanDefinition);
@@ -74,6 +96,34 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
     }
 
     /**
+     * 获取Bean的早期引用，用于处理循环依赖
+     * 会遍历所有BeanPostProcessor，执行其getEarlyBeanReference方法
+     * @param beanName Bean名称
+     * @param beanDefinition Bean的定义信息
+     * @param bean 原始Bean实例
+     * @return 经过处理后的早期暴露引用（可能被增强，如AOP代理）
+     */
+    protected Object getEarlyBeanReference(String beanName, BeanDefinition beanDefinition, Object bean) {
+        Object exposedObject = bean;
+        // 遍历所有Bean后置处理器
+        for (BeanPostProcessor bp : getBeanPostProcessors()) {
+            // 只处理InstantiationAwareBeanPostProcessor类型的处理器
+            if (bp instanceof InstantiationAwareBeanPostProcessor) {
+                // 调用处理器的早期引用方法进行处理
+                Object current = ((InstantiationAwareBeanPostProcessor) bp)
+                        .getEarlyBeanReference(exposedObject, beanName);
+                // 如果处理器返回了新的引用，则更新暴露的引用
+                if (current != null) {
+                    exposedObject = current;
+                }
+            }
+        }
+        // 返回最终处理后的早期引用
+        return exposedObject;
+    }
+
+
+    /**
      * 初始化 Bean 的过程：
      * 1. 调用实现了 Aware 接口的回调方法，注入相应的容器资源。
      * 2. 执行所有 BeanPostProcessor 的 postProcessBeforeInitialization 方法。
@@ -82,7 +132,8 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
      */
     private Object initializeBean(String beanName, Object bean, BeanDefinition beanDefinition) {
 
-        // 调用 Aware 接口的回调方法，注入容器资源。（具体实现由Bean自己实现）
+        // 1. 处理Aware接口回调（注入容器核心资源）
+        // 让Bean能够感知到容器相关信息（如Bean名称、BeanFactory等）
         if (bean instanceof Aware) {
             if (bean instanceof BeanFactoryAware) {
                 ((BeanFactoryAware) bean).setBeanFactory(this);
@@ -95,21 +146,43 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
             }
         }
 
-        // 执行 BeanPostProcessor 的初始化前置处理
+        // 2. 执行初始化前置处理器（BeanPostProcessor）
+        // 例如：@PostConstruct注解标注的方法会在此阶段执行
         Object wrappedBean = applyBeanPostProcessorsBeforeInitialization(bean, beanName);
 
-        // 调用 Bean 的初始化方法（afterPropertiesSet、init-method）
+        // 3. 执行Bean自身的初始化方法
         try {
+            // 调用InitializingBean接口的afterPropertiesSet方法
+            // 或自定义的init-method初始化方法
+            // 此时Bean的属性已完成填充，可执行初始化逻辑
             invokeInitMethods(beanName, wrappedBean, beanDefinition);
         } catch (Exception e) {
             throw new BeansException("Invocation of init method of bean[" + beanName + "] failed", e);
         }
 
-        // 执行 BeanPostProcessor 的初始化后置处理
+        // 4. 执行初始化后置处理器
+        // 无循环依赖时：AOP代理在此阶段通过wrapIfNecessary创建
+        // 有循环依赖时：因advisedBeans缓存直接返回原始对象（早期代理已创建）
         wrappedBean = applyBeanPostProcessorsAfterInitialization(wrappedBean, beanName);
 
+        // 5. 循环依赖场景：复用早期代理对象（核心逻辑）
+        // 从二级缓存获取早期暴露的代理对象（若存在）
+        Object earlySingletonReference = getSingleton(beanName);
+
+        if (earlySingletonReference != null) {
+            // 若经过后置处理后仍是原始对象，说明需要替换为早期代理
+            // 保证最终返回的是代理对象，与循环依赖中已注入的对象一致
+            if (wrappedBean == bean) {
+                wrappedBean = earlySingletonReference;
+            }
+        }
+
+        // 最终返回的对象：
+        // - 无循环依赖：正常代理对象或原始对象
+        // - 有循环依赖：早期创建的代理对象（保证引用一致性）
         return wrappedBean;
     }
+
 
 
     /**
@@ -142,6 +215,37 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
         }
         return result;
     }
+
+    /**
+     * Bean 实例化后对于返回 false 的对象，不再执行后续属性填充操作
+     *
+     * @param beanName 当前 Bean 的名称
+     * @param bean     当前 Bean 实例
+     * @return 如果返回 true，则继续填充属性；返回 false，则跳过属性填充
+     */
+    private boolean applyBeanPostProcessorsAfterInstantiation(String beanName, Object bean) {
+        // 默认继续执行属性填充
+        boolean continueWithPropertyPopulation = true;
+
+        // 遍历所有注册的 BeanPostProcessor
+        for (BeanPostProcessor beanPostProcessor : getBeanPostProcessors()) {
+            // 只处理实现了 InstantiationAwareBeanPostProcessor 的处理器
+            if (beanPostProcessor instanceof InstantiationAwareBeanPostProcessor) {
+                InstantiationAwareBeanPostProcessor instantiationAwareBeanPostProcessor =
+                        (InstantiationAwareBeanPostProcessor) beanPostProcessor;
+
+                // 调用 postProcessAfterInstantiation 方法，如果返回 false，就不填充属性
+                if (!instantiationAwareBeanPostProcessor.postProcessAfterInstantiation(bean, beanName)) {
+                    continueWithPropertyPopulation = false;
+                    break; // 一旦有处理器返回 false，立即停止遍历
+                }
+            }
+        }
+
+        // 返回是否继续执行属性填充
+        return continueWithPropertyPopulation;
+    }
+
 
     /*
      * 执行所有注册的 BeanPostProcessor 的 postProcessBeforeInitialization 方法
@@ -193,7 +297,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
                 //instanceof：判断value这个对象是否为BeanReference的实例
                 if (value instanceof BeanReference) {
 
-                    //注意暂时没有去处理循环依赖的问题，后续补充
+                    // A 依赖 B，获取 B 的实例化
                     BeanReference beanReference = (BeanReference) value;
                     value = getBean(beanReference.getBeanName());
                 }
@@ -299,6 +403,9 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
             }
         }
     }
+
+
+
 
 
 }
