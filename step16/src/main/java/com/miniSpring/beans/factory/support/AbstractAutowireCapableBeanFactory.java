@@ -22,7 +22,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
         Object bean = null;
 
         try {
-            // 提前代理部分，用于处理缓存依赖问题，以后再处理，目前先直接返回null，正常走创建流程，在postProcessAfterInitialization里做代理。
+            // 提前代理，提供一个机会来返回一个自定义的 bean 实例，从而跳过 Spring 默认的 bean 实例化、属性注入等流程。
             bean = resolveBeforeInstantiation(beanName, beanDefinition);
             if (null != bean) {
                 return bean;
@@ -64,11 +64,13 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
         registerDisposableBeanIfNecessary(beanName, bean, beanDefinition);
 
         // 判断 SCOPE_SINGLETON、SCOPE_PROTOTYPE
+        Object exposedObject = bean;
         if (beanDefinition.isSingleton()) {
-            addSingleton(beanName, bean);
+            // 获取代理对象
+            exposedObject = getSingleton(beanName);
+            registerSingleton(beanName, exposedObject);
         }
-
-        return bean;
+        return exposedObject;
     }
 
     /**
