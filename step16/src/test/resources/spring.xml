@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans>
+    <bean class="com.miniSpring.beans.factory.PropertyPlaceholderConfigurer">
+        <property name="location" value="classpath:token.properties"/>
+    </bean>
+
+    <!-- 自动代理创建器：-->
+    <bean class="com.miniSpring.aop.framework.autoproxy.DefaultAdvisorAutoProxyCreator"/>
+
+    <!-- aop组合1-->
+    <bean id="beforeAdvice1" class="com.miniSpring.test.bean.LogBeforeAdvice"/>
+
+    <bean id="methodInterceptor1" class="com.miniSpring.aop.adapter.MethodBeforeAdviceInterceptor">
+        <property name="advice" ref="beforeAdvice1"/>
+    </bean>
+
+    <bean id="pointcutAdvisor1" class="com.miniSpring.aop.aspectj.AspectJExpressionPointcutAdvisor">
+        <property name="expression" value="execution(* com.miniSpring.test.bean.IUserService.*(..))"/>
+        <property name="advice" ref="methodInterceptor1"/>
+        <property name="order" value="3"/>
+    </bean>
+
+    <!-- aop组合2-->
+    <bean id="afterAdvice2" class="com.miniSpring.test.bean.LogAfterAdvice"/>
+
+    <bean id="methodInterceptor2" class="com.miniSpring.aop.adapter.MethodAfterAdviceInterceptor">
+        <property name="advice" ref="afterAdvice2"/>
+    </bean>
+
+    <bean id="pointcutAdvisor2" class="com.miniSpring.aop.aspectj.AspectJExpressionPointcutAdvisor">
+        <property name="expression" value="execution(* com.miniSpring.test.bean.IUserService.*(..))"/>
+        <property name="advice" ref="methodInterceptor2"/>
+        <property name="order" value="2"/>
+    </bean>
+
+    <!-- aop组合3-->
+    <bean id="aroundAdvice3" class="com.miniSpring.test.bean.LogAroundAdvice"/>
+
+    <bean id="methodInterceptor3" class="com.miniSpring.aop.adapter.MethodAroundAdviceInterceptor">
+        <property name="advice" ref="aroundAdvice3"/>
+    </bean>
+
+    <bean id="pointcutAdvisor3" class="com.miniSpring.aop.aspectj.AspectJExpressionPointcutAdvisor">
+        <property name="expression" value="execution(* com.miniSpring.test.bean.IUserService.*(..))"/>
+        <property name="advice" ref="methodInterceptor3"/>
+        <property name="order" value="1"/>
+    </bean>
+
+
+    <component-scan base-package="com.miniSpring.test.bean"/>
+</beans>
